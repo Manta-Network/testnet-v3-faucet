@@ -1,66 +1,38 @@
-//const { SQS, SecretsManager } = require('aws-sdk');
-const { SQS } = require('aws-sdk');
-const sqs = new SQS({ region: 'us-east-2' });
 const { Faucet } = require('./faucet');
+const { SQS } = require('aws-sdk');
+const { Client, Events, GatewayIntentBits } = require('discord.js');
 
-//const secretsClient = new SecretsManager();
-
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const sqs = new SQS({ region: 'us-east-2' });
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+client.once(Events.ClientReady, c => console.log(`discord client signed in as: ${c.user.tag}.`));
 
-const sleep = (milliseconds) => {
-  return new Promise(resolve => setTimeout(resolve, milliseconds))
-}
-
-const params = {
-    MaxNumberOfMessages: 10,
-    MessageAttributeNames: ["All"],
-    QueueUrl: process.env.AWS_SQS_URL,
-    VisibilityTimeout: 10,
-    WaitTimeSeconds: 0
-};
-
-/*
-async function fetch_secrets() {
-    const secrets = await secretsClient.getSecretValue({ SecretId: "dolphin-faucet-processor" }).promise();
-    return JSON.parse(secrets.SecretString);
-}
-*/
-
-async function delete_message(handle) {
-    var deleteParams = {
-      QueueUrl: process.env.AWS_SQS_URL,
-      ReceiptHandle: handle
-    };
-    await sqs.deleteMessage(deleteParams).promise();
-}
-
-async function handle_messages (faucet) {
-    const result = await sqs.receiveMessage(params).promise();
-
-    if (result.Messages === undefined) {
-        return;
+async function processQueuedMessages (faucet) {
+    const queue = await sqs.receiveMessage({
+        MaxNumberOfMessages: 10,
+        MessageAttributeNames: ["All"],
+        QueueUrl: process.env.AWS_SQS_URL,
+        VisibilityTimeout: 10,
+        WaitTimeSeconds: 0
+    }).promise();
+    if (!!queue.Messages) {
+        console.log(`fetched ${queue.Messages.length} messages from the queue.`);
+        for (const message of queue.Messages) {
+            await faucet.process_transfer(JSON.parse(message.Body));
+            await sqs.deleteMessage({
+                QueueUrl: process.env.AWS_SQS_URL,
+                ReceiptHandle: message.ReceiptHandle,
+            }).promise();
+        }
+        console.log(`processed ${queue.Messages.length} messages from the queue.`);
+    } else {
+        console.log(`observed an empty queue.`);
     }
-
-    console.log(`Processing ${result.Messages.length} items`);
-    for (const msg of result.Messages) {
-        const body = JSON.parse(msg.Body);
-        const response = await faucet.process_transfer(body);
-        await delete_message(msg.ReceiptHandle);
-    }
-    console.log("Done");
 }
-
 
 (async function () {
-    //const secrets = await fetch_secrets();
-    //await client.login(secrets.DOLPHIN_BOT_TOKEN);
-    //const faucet = new Faucet(client, secrets.ACCOUNT_MNEMONIC);
     await client.login(process.env.DISCORD_BOT_TOKEN);
     const faucet = new Faucet(client, process.env.DOLPHIN_FAUCET_MNEMONIC);
     while (true) {
-        console.log("Running handler");
-        await handle_messages(faucet);
-        await sleep(5000);
+        await processQueuedMessages(faucet);
     }
 })()
