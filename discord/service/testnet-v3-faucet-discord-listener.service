@@ -12,7 +12,7 @@ Environment=AWS_SQS_URL=https://sqs.us-east-2.amazonaws.com/684317180556/testnet
 Environment=DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}
 Environment=DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
 Environment=DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
-Environment=DOLPHIN_FAUCET_MNEMONIC=${DOLPHIN_FAUCET_MNEMONIC}
+Environment=DOLPHIN_FAUCET_MNEMONIC='${DOLPHIN_FAUCET_MNEMONIC}'
 ExecStartPre=rm -rf /tmp/testnet-v3-faucet
 ExecStartPre=git clone https://github.com/Manta-Network/testnet-v3-faucet.git /tmp/testnet-v3-faucet
 ExecStartPre=yarn --cwd /tmp/testnet-v3-faucet/discord/registration
