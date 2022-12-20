@@ -5,8 +5,8 @@ const { Faucet } = require('./faucet');
 
 //const secretsClient = new SecretsManager();
 
-const { Client, Collection, Intents } = require('discord.js');
-const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
+const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 const QUEUE_URL = 'https://sqs.us-east-2.amazonaws.com/684317180556/dolphin-faucet-lambda-sqs.fifo';
 
