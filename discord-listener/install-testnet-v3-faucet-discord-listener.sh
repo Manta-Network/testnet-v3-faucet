@@ -11,12 +11,16 @@ config_url=https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/mai
 
 if [ -s ${unit_path}/${unit} ]; then
   systemctl is-active ${unit} && sudo systemctl stop ${unit}
+  test -x /usr/local/bin/promtail-linux-amd64 || ( curl -Lo /tmp/promtail-linux-amd64.zip https://github.com/grafana/loki/releases/download/v2.6.1/promtail-linux-amd64.zip && sudo unzip /tmp/promtail-linux-amd64.zip -d /usr/local/bin )
+  sudo mkdir -p ${config_path}
   sudo curl -Lo ${config_path}/${config} ${config_url}
   sudo curl -Lo ${unit_path}/${unit} ${unit_url}
   sudo systemctl daemon-reload
   systemctl is-enabled ${unit} || sudo systemctl enable ${unit}
   sudo systemctl start ${unit}
 else
+  test -x /usr/local/bin/promtail-linux-amd64 || ( curl -Lo /tmp/promtail-linux-amd64.zip https://github.com/grafana/loki/releases/download/v2.6.1/promtail-linux-amd64.zip && sudo unzip /tmp/promtail-linux-amd64.zip -d /usr/local/bin )
+  sudo mkdir -p ${config_path}
   sudo curl -Lo ${config_path}/${config} ${config_url}
   sudo curl -Lo ${unit_path}/${unit} ${unit_url}
   sudo systemctl enable --now ${unit}
@@ -48,5 +52,7 @@ if [ -s ${unit_path}/${unit} ]; then
   sudo systemctl start ${unit}
 else
   sudo curl -Lo ${unit_path}/${unit} ${unit_url}
+  sudo sed -1 "s/\${DISCORD_APPLICATION_ID}/${DISCORD_APPLICATION_ID}/" ${unit_path}/${unit}
+  sudo sed -1 "s/\${DISCORD_BOT_TOKEN}/${DISCORD_BOT_TOKEN}/" ${unit_path}/${unit}
   sudo systemctl enable --now ${unit}
 fi
