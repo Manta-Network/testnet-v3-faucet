@@ -18,7 +18,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
             console.error(error);
         }
         */
-    else {
+    } else {
         console.error(`observed unrecognised command from discord: ${interaction.commandName}.`);
     }
 });
