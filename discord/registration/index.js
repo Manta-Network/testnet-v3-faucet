@@ -18,11 +18,11 @@ const commands = ['dol', 'kar', 'ksm', 'movr'].map((token) => (
 ));
 const rest = new REST({ version: '10' }).setToken(discord.token);
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: [] })
-    .then(() => console.log('deleted old guild commands.'))
+    .then(() => console.log('deleted existing guild commands.'))
     .catch(console.error);
 rest.put(Routes.applicationCommands(discord.clientId), { body: [] })
-    .then(() => console.log('deleted old application commands.'))
+    .then(() => console.log('deleted existing application commands.'))
     .catch(console.error);
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: commands })
-    .then(() => console.log(`created guild commands: ${commands.map((c) => c.name).join(', ')}`)
+    .then(() => console.log(`created guild commands: ${commands.map((c) => c.name).join(', ')}`))
     .catch(console.error);
