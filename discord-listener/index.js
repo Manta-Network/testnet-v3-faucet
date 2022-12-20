@@ -2,7 +2,12 @@ import { REST, Routes } from 'discord.js';
 
 //const commandPrefix = 'gimme';
 const commandPrefix = 'dai';
-const tokens = ['ausd'];
+const tokens = [
+  'dol',
+  'kar',
+  'ksm',
+  'movr',
+];
 
 const commands = tokens.map((token) => ({
   name: `${commandPrefix}-${token}`,
