@@ -860,11 +860,6 @@ discord.js@^14.7.1:
     undici "^5.13.0"
     ws "^8.11.0"
 
-dolphin-api@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/dolphin-api/-/dolphin-api-0.2.0.tgz#9fad88de1b0c196e7a7cfaa1ceeb921508b3fe12"
-  integrity sha512-086dnxNH6swxiP26iL0L8ryP0p4HFMSsUSPv+9TQXzRCPOkQSDcvOFfa5CNhnhSZ7LsYEdc8bZPeKJ6G2U8osw==
-
 ed2curve@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/ed2curve/-/ed2curve-0.3.0.tgz#322b575152a45305429d546b071823a93129a05d"

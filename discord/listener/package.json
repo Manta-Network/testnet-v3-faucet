@@ -13,6 +13,7 @@
     "aws-sdk": "^2.1278.0",
     "bn.js": "^5.2.1",
     "discord.js": "^14.7.1",
-    "moonbeam-types-bundle": "^2.0.9"
+    "moonbeam-types-bundle": "^2.0.9",
+    "tweetnacl": "^1.0.3"
   }
 }
