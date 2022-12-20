@@ -24,5 +24,5 @@ rest.put(Routes.applicationCommands(discord.clientId), { body: [] })
     .then(() => console.log('deleted old application commands.'))
     .catch(console.error);
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: commands })
-    .then(() => console.log(`created guild commands: ${commands.map((c) => c.name).join(', ')}`, )
+    .then(() => console.log(`created guild commands: ${commands.map((c) => c.name).join(', ')}`)
     .catch(console.error);
