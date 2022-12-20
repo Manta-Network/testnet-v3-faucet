@@ -6,7 +6,7 @@ const tokens = ['ausd'];
 
 const commands = tokens.map((token) => ({
   name: `${commandPrefix}-${token}`,
-  description: 'request ${token} from the testnet v3 faucet',
+  description: `request ${token} from the testnet v3 faucet`,
 }));
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_BOT_TOKEN);
