@@ -8,8 +8,6 @@ const { Faucet } = require('./faucet');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
-const QUEUE_URL = 'https://sqs.us-east-2.amazonaws.com/684317180556/dolphin-faucet-lambda-sqs.fifo';
-
 const sleep = (milliseconds) => {
   return new Promise(resolve => setTimeout(resolve, milliseconds))
 }
@@ -17,7 +15,7 @@ const sleep = (milliseconds) => {
 const params = {
     MaxNumberOfMessages: 10,
     MessageAttributeNames: ["All"],
-    QueueUrl: QUEUE_URL,
+    QueueUrl: process.env.AWS_SQS_URL,
     VisibilityTimeout: 10,
     WaitTimeSeconds: 0
 };
@@ -31,7 +29,7 @@ async function fetch_secrets() {
 
 async function delete_message(handle) {
     var deleteParams = {
-      QueueUrl: QUEUE_URL,
+      QueueUrl: process.env.AWS_SQS_URL,
       ReceiptHandle: handle
     };
     await sqs.deleteMessage(deleteParams).promise();
