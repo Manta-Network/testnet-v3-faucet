@@ -4,7 +4,24 @@ const { Client, Events, GatewayIntentBits } = require('discord.js');
 
 const sqs = new SQS({ region: 'us-east-2' });
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
-client.once(Events.ClientReady, c => console.log(`discord client signed in as: ${c.user.tag}.`));
+client.once(Events.ClientReady, (c) => console.log(`discord client signed in as: ${c.user.tag}.`));
+client.on(Events.InteractionCreate, async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+    const command = interaction.client.commands.get(interaction.commandName);
+    if (!!command) {
+        console.log('observed:', JSON.stringify({command, interaction}));
+        /*
+        try {
+            await command.execute(interaction);
+        } catch (error) {
+            console.error(`Error executing ${interaction.commandName}`);
+            console.error(error);
+        }
+        */
+    else {
+        console.error(`observed unrecognised command from discord: ${interaction.commandName}.`);
+    }
+});
 
 async function processQueuedMessages (faucet) {
     const queue = await sqs.receiveMessage({
@@ -25,7 +42,7 @@ async function processQueuedMessages (faucet) {
         }
         console.log(`processed ${queue.Messages.length} messages from the queue.`);
     } else {
-        console.log(`observed an empty queue.`);
+        //console.log(`observed an empty queue.`);
     }
 }
 
