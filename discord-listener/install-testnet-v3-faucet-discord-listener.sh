@@ -1,9 +1,33 @@
 #!/usr/bin/env bash
 
+# install promtail.service (to forward service logs)
+
+unit=promtail.service
+unit_path=/etc/systemd/system
+unit_url=https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord-listener/${unit}
+config=promtail.yml
+config_path=/etc/promtail
+config_url=https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord-listener/${config}
+
+if [ -s ${unit_path}/${unit} ]; then
+  systemctl is-active ${unit} && sudo systemctl stop ${unit}
+  sudo curl -Lo ${config_path}/${config} ${config_url}
+  sudo curl -Lo ${unit_path}/${unit} ${unit_url}
+  sudo systemctl daemon-reload
+  systemctl is-enabled ${unit} || sudo systemctl enable ${unit}
+  sudo systemctl start ${unit}
+else
+  sudo curl -Lo ${config_path}/${config} ${config_url}
+  sudo curl -Lo ${unit_path}/${unit} ${unit_url}
+  sudo systemctl enable --now ${unit}
+fi
+
+
+# install testnet-v3-faucet-discord-listener.service
+
 unit=testnet-v3-faucet-discord-listener.service
 unit_path=/etc/systemd/system
 unit_url=https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord-listener/${unit}
-
 
 if [ "${#1}" = "19" ] && [ "${#2}" = "72" ]; then
   DISCORD_APPLICATION_ID=${1}
