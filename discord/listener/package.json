@@ -2,13 +2,18 @@
   "name": "discord-listener",
   "version": "0.0.1",
   "description": "listen to discord faucet commands",
-  "type": "module",
   "main": "index.js",
   "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
   "author": "manta ops <ops@manta.network>",
-  "license": "MIT",
+  "license": "ISC",
   "private": false,
   "dependencies": {
-    "discord.js": "^14.7.1"
+    "@acala-network/api": "^4.1.8-2.3",
+    "@polkadot/api": "6.8.1",
+    "aws-sdk": "^2.1037.0",
+    "bn.js": "^5.2.0",
+    "discord.js": "^13.3.1",
+    "dolphin-api": "^0.1.0",
+    "moonbeam-types-bundle": "^2.0.9"
   }
 }

@@ -1,0 +1,20 @@
+{
+  "name": "discord-registration",
+  "version": "0.0.1",
+  "description": "register discord faucet commands",
+  "main": "index.js",
+  "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
+  "author": "manta ops <ops@manta.network>",
+  "license": "ISC",
+  "private": false,
+  "dependencies": {
+    "@discordjs/builders": "^0.8.2",
+    "@discordjs/rest": "^0.1.0-canary.0",
+    "@polkadot/api": "^6.9.2",
+    "@polkadot/keyring": "^7.9.1",
+    "aws-sdk": "^2.1033.0",
+    "discord-api-types": "^0.24.0",
+    "discord.js": "^13.3.1",
+    "tweetnacl": "^1.0.3"
+  }
+}
