@@ -19,5 +19,5 @@ for (const file of commandFiles) {
 const rest = new REST({ version: '9' }).setToken(discord.token);
 
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: commands })
-    .then(() => console.log('Successfully registered application commands.'))
+    .then(() => console.log('Successfully registered application commands.', JSON.stringify(commands)))
     .catch(console.error);
