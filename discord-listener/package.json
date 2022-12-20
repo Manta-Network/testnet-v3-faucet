@@ -1,0 +1,14 @@
+{
+  "name": "discord-listener",
+  "version": "0.0.1",
+  "description": "listen to discord faucet commands",
+  "type": "module",
+  "main": "index.js",
+  "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
+  "author": "manta ops <ops@manta.network>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "discord.js": "^14.7.1"
+  }
+}
