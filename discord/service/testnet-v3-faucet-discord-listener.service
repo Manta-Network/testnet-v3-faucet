@@ -6,6 +6,8 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/tmp
+Environment=AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+Environment=AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 Environment=DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}
 Environment=DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
 Environment=DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}

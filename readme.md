@@ -21,7 +21,13 @@ this application consists of several components:
 ```shell=
 #!/usr/bin/env bash
 
-curl -sL https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/install.sh | sudo bash -s 1054627515160854578 1054619758336675910 XXXXX_DISCORD_BOT_TOKEN_XXXXX "this is not really the dolphin faucet mnemonic you should change it"
+AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX
+AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+DISCORD_APPLICATION_ID=1054627515160854578
+DISCORD_GUILD_ID=1054619758336675910
+DISCORD_BOT_TOKEN=XXXXX_DISCORD_BOT_TOKEN_XXXXX
+DOLPHIN_FAUCET_MNEMONIC=this is not really the dolphin faucet mnemonic you should change it
+curl -sL https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/install.sh | sudo bash -s ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${DISCORD_APPLICATION_ID} ${DISCORD_GUILD_ID} ${DISCORD_BOT_TOKEN} "${DOLPHIN_FAUCET_MNEMONIC}"
 ```
 
 #### debugging
