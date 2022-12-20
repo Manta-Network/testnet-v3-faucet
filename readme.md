@@ -21,7 +21,7 @@ this application consists of several components:
 ```shell=
 #!/usr/bin/env bash
 
-curl -sL https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/install.sh | sudo bash -s 1054627515160854578 1054619758336675910 XXXXX_DISCORD_BOT_TOKEN_XXXXX
+curl -sL https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/install.sh | sudo bash -s 1054627515160854578 1054619758336675910 XXXXX_DISCORD_BOT_TOKEN_XXXXX "this is not really the dolphin faucet mnemonic you should change it"
 ```
 
 #### debugging

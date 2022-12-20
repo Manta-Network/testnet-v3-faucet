@@ -1,8 +1,9 @@
-const { SQS, SecretsManager } = require('aws-sdk');
+//const { SQS, SecretsManager } = require('aws-sdk');
+const { SQS } = require('aws-sdk');
 const sqs = new SQS({ region: 'us-east-2' });
 const { Faucet } = require('./faucet');
 
-const secretsClient = new SecretsManager();
+//const secretsClient = new SecretsManager();
 
 const { Client, Collection, Intents } = require('discord.js');
 const client = new Client({ intents: [Intents.FLAGS.GUILDS] });
@@ -21,10 +22,12 @@ const params = {
     WaitTimeSeconds: 0
 };
 
+/*
 async function fetch_secrets() {
     const secrets = await secretsClient.getSecretValue({ SecretId: "dolphin-faucet-processor" }).promise();
     return JSON.parse(secrets.SecretString);
 }
+*/
 
 async function delete_message(handle) {
     var deleteParams = {
@@ -52,10 +55,11 @@ async function handle_messages (faucet) {
 
 
 (async function () {
-    const secrets = await fetch_secrets();
+    //const secrets = await fetch_secrets();
     //await client.login(secrets.DOLPHIN_BOT_TOKEN);
+    //const faucet = new Faucet(client, secrets.ACCOUNT_MNEMONIC);
     await client.login(process.env.DISCORD_BOT_TOKEN);
-    const faucet = new Faucet(client, secrets.ACCOUNT_MNEMONIC);
+    const faucet = new Faucet(client, process.env.DOLPHIN_FAUCET_MNEMONIC);
     while (true) {
         console.log("Running handler");
         await handle_messages(faucet);

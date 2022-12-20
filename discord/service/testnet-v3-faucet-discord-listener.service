@@ -9,6 +9,7 @@ WorkingDirectory=/tmp
 Environment=DISCORD_APPLICATION_ID=${DISCORD_APPLICATION_ID}
 Environment=DISCORD_GUILD_ID=${DISCORD_GUILD_ID}
 Environment=DISCORD_BOT_TOKEN=${DISCORD_BOT_TOKEN}
+Environment=DOLPHIN_FAUCET_MNEMONIC=${DOLPHIN_FAUCET_MNEMONIC}
 ExecStartPre=/bin/bash -c '[ -d /tmp/testnet-v3-faucet/.git ] || git clone https://github.com/Manta-Network/testnet-v3-faucet.git /tmp/testnet-v3-faucet'
 ExecStartPre=git --git-dir=/tmp/testnet-v3-faucet/.git --work-tree=/tmp/testnet-v3-faucet pull
 ExecStartPre=yarn --cwd /tmp/testnet-v3-faucet/discord/registration
