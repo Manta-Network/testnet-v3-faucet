@@ -33,7 +33,7 @@ unit=testnet-v3-faucet-discord-listener.service
 unit_path=/etc/systemd/system
 unit_url=https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/${unit}
 
-if [ "${#1}" = "20" ] && [ "${#2}" = "40" ] && [ "${#3}" = "19" ] && [ "${#4}" = "19" ] && [ "${#5}" = "72" ]; then
+if [ "${#1}" = "20" ] && [ "${#2}" = "40" ] && [ "${#3}" = "19" ] && [ "${#4}" = "18" ] && [ "${#5}" = "72" ]; then
   AWS_ACCESS_KEY_ID=${1}
   AWS_SECRET_ACCESS_KEY=${2}
   DISCORD_APPLICATION_ID=${3}
@@ -45,7 +45,7 @@ else
   echo '$ AWS_ACCESS_KEY_ID=AKIAXXXXXXXXXXXXXXXX'
   echo '$ AWS_SECRET_ACCESS_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
   echo '$ DISCORD_APPLICATION_ID=1054627515160854578'
-  echo '$ DISCORD_GUILD_ID=1054619758336675910'
+  echo '$ DISCORD_GUILD_ID=966219979383013426'
   echo '$ DISCORD_BOT_TOKEN=XXXXX_DISCORD_BOT_TOKEN_XXXXX'
   echo '$ DOLPHIN_FAUCET_MNEMONIC=this is not really the dolphin faucet mnemonic you should change it'
   echo '$ curl -sL https://raw.githubusercontent.com/Manta-Network/testnet-v3-faucet/main/discord/service/install.sh | sudo bash -s ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY} ${DISCORD_APPLICATION_ID} ${DISCORD_GUILD_ID} ${DISCORD_BOT_TOKEN} "${DOLPHIN_FAUCET_MNEMONIC}"'
