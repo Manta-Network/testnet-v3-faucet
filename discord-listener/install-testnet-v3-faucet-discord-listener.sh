@@ -45,14 +45,14 @@ fi
 if [ -s ${unit_path}/${unit} ]; then
   systemctl is-active ${unit} && sudo systemctl stop ${unit}
   sudo curl -Lo ${unit_path}/${unit} ${unit_url}
-  sudo sed -1 "s/\${DISCORD_APPLICATION_ID}/${DISCORD_APPLICATION_ID}/" ${unit_path}/${unit}
-  sudo sed -1 "s/\${DISCORD_BOT_TOKEN}/${DISCORD_BOT_TOKEN}/" ${unit_path}/${unit}
+  sudo sed -i "s/\${DISCORD_APPLICATION_ID}/${DISCORD_APPLICATION_ID}/" ${unit_path}/${unit}
+  sudo sed -i "s/\${DISCORD_BOT_TOKEN}/${DISCORD_BOT_TOKEN}/" ${unit_path}/${unit}
   sudo systemctl daemon-reload
   systemctl is-enabled ${unit} || sudo systemctl enable ${unit}
   sudo systemctl start ${unit}
 else
   sudo curl -Lo ${unit_path}/${unit} ${unit_url}
-  sudo sed -1 "s/\${DISCORD_APPLICATION_ID}/${DISCORD_APPLICATION_ID}/" ${unit_path}/${unit}
-  sudo sed -1 "s/\${DISCORD_BOT_TOKEN}/${DISCORD_BOT_TOKEN}/" ${unit_path}/${unit}
+  sudo sed -i "s/\${DISCORD_APPLICATION_ID}/${DISCORD_APPLICATION_ID}/" ${unit_path}/${unit}
+  sudo sed -i "s/\${DISCORD_BOT_TOKEN}/${DISCORD_BOT_TOKEN}/" ${unit_path}/${unit}
   sudo systemctl enable --now ${unit}
 fi
