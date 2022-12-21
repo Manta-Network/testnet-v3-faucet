@@ -22,7 +22,7 @@ const processQueuedMessages = async (sqs, faucet) => {
         console.log(`processed ${queue.Messages.length} messages from the queue.`);
     } else {
         console.log(`observed an empty queue.`);
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 3000));
     }
 };
 
