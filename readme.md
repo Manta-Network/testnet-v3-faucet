@@ -12,6 +12,14 @@ this application consists of several components:
 
 *a continuously running nodejs application which listens for messages and commands from discord*
 
+note: the aws iam policy governing the listener's queue access is at: https://us-east-1.console.aws.amazon.com/iam/home#/policies/arn:aws:iam::684317180556:policy/testnet-v3-faucet$jsonEditor
+
+### lambda
+
+*an aws lambda endpoint which receives discord interactions (messages, commands) and places them in the processor queue*
+
+on first deployment of the lambda, aws will assign it an endpoint url. the discord application responsible for handling commands must be configured with this url in its `interactions endpoint url` field. this can be set in the application configuration console at `https://discord.com/developers/applications/${DISCORD_APPLICATION_ID}/information`, ie: https://discord.com/developers/applications/1054627515160854578/information.
+
 ### discord/service
 
 *a systemd service configuration and installer which runs the above nodejs applications*

@@ -1,11 +1,11 @@
 {
-  "name": "discord-registration",
+  "name": "@testnet-v3-faucet/discord-registration",
   "version": "0.0.1",
   "description": "register and unregister discord faucet commands",
   "main": "index.js",
   "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
   "author": "manta ops <ops@manta.network>",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "private": false,
   "dependencies": {
     "discord.js": "^14.7.1",

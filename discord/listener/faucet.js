@@ -68,10 +68,11 @@ const types = {
 }
 
 const COINS = {
-    DOL: { id: 1, symbol: "DOL", amount: new BN(100) * new BN(10).pow(new BN(18)), socket: "wss://c1.dolphin.seabird.systems", types: types },
-    KSM: { symbol: "KSM", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://v1.internal.kusama.systems/0" },
-    KAR: { symbol: "KAR", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://c1.acala.seabird.systems", options: options },
-    MOVR: { symbol: "MOVR", amount: new BN(10) * new BN(10).pow(new BN(18)), socket: "wss://c1.moonriver.seabird.systems", typesBundle: typesBundlePre900},
+    //KMA: { id: 1, symbol: "KMA", amount: new BN(100) * new BN(10).pow(new BN(18)), socket: "wss://ws.calamari.seabird.systems", types: types },
+    DOL: { id: 1, symbol: "DOL", amount: new BN(100) * new BN(10).pow(new BN(18)), socket: "wss://ws.dolphin.seabird.systems", types: types },
+    KSM: { symbol: "KSM", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://ws.internal.kusama.systems" },
+    KAR: { symbol: "KAR", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://ws.acala.seabird.systems", options: options },
+    MOVR: { symbol: "MOVR", amount: new BN(10) * new BN(10).pow(new BN(18)), socket: "wss://ws.moonriver.seabird.systems", typesBundle: typesBundlePre900},
 };
 
 class Faucet {
@@ -115,7 +116,8 @@ class Faucet {
           const keyring = new Keyring({ type: 'sr25519' });
           this.faucet = keyring.addFromMnemonic(this.account);
         }
-        let nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
+        //let nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
+        const { nonce } = api.query.system.account(this.faucet.address);
 
         const txResHandler = (result) => {
             if (result.status.isFinalized) {

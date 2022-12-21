@@ -1,11 +1,11 @@
 {
-  "name": "discord-listener",
+  "name": "@testnet-v3-faucet/discord-listener",
   "version": "0.0.1",
   "description": "listen to discord faucet commands",
   "main": "index.js",
   "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
   "author": "manta ops <ops@manta.network>",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "private": false,
   "dependencies": {
     "@acala-network/api": "^4.1.8-2.3",
