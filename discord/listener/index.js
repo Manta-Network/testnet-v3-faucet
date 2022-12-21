@@ -32,7 +32,7 @@ const processQueuedMessages = async (sqs, faucet) => {
     await client.login(process.env.DISCORD_BOT_TOKEN);
     const faucet = new Faucet(client, process.env.DOLPHIN_FAUCET_MNEMONIC);
     while (true) {
-        await processQueuedMessages(sqs, aucet);
+        await processQueuedMessages(sqs, faucet);
         await new Promise((r) => setTimeout(r, 1000));
     }
 })();
