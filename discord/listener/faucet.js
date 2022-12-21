@@ -110,14 +110,14 @@ class Faucet {
         //     this.faucet = keyring.addFromMnemonic(this.account);
         // }
         console.log('call to send_token with parameters: ', token, channel, address);
-        const api = this.apiByCoinName[token];
+        const api = await this.apiByCoinName[token];
         await api.isReady;
         if (!this.faucet) {
           const keyring = new Keyring({ type: 'sr25519' });
           this.faucet = keyring.addFromMnemonic(this.account);
         }
-        //let nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
-        const { nonce } = await api.query.system.account(this.faucet.address);
+        const nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
+        //const { nonce } = await api.query.system.account(this.faucet.address);
 
         const txResHandler = (result) => {
             if (result.status.isFinalized) {
