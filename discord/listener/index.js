@@ -2,7 +2,7 @@ const { Faucet } = require('./faucet');
 const { SQS } = require('aws-sdk');
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 
-const processQueuedMessages = async (faucet) => {
+const processQueuedMessages = async (sqs, faucet) => {
     const queue = await sqs.receiveMessage({
         MaxNumberOfMessages: 10,
         MessageAttributeNames: ['All'],
@@ -32,7 +32,7 @@ const processQueuedMessages = async (faucet) => {
     await client.login(process.env.DISCORD_BOT_TOKEN);
     const faucet = new Faucet(client, process.env.DOLPHIN_FAUCET_MNEMONIC);
     while (true) {
-        await processQueuedMessages(faucet);
+        await processQueuedMessages(sqs, aucet);
         await new Promise((r) => setTimeout(r, 1000));
     }
 })();
