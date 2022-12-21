@@ -78,97 +78,83 @@ const COINS = {
 class Faucet {
     constructor(client, account) {
       console.log('Constructing faucet');
-        this.apiByCoinName = {};
-        for (const key in COINS) {
-            const coin = COINS[key]
-            const provider = new WsProvider(coin.socket);
-
-            const apiTypes = coin.types;
-            const apiTypesBundle = coin.typesBundle;
-            const apiOptions = coin.options;
-
-            let apiPromise;
-            if (apiOptions) {
-              apiPromise = ApiPromise.create(apiOptions({ provider, types: apiTypes,}));
-            } else {
-              apiPromise = ApiPromise.create({provider, types: apiTypes, typesBundle: apiTypesBundle});
-            }
-            this.apiByCoinName[coin.symbol] = apiPromise;
-        }
-        console.log('Finished constructing apis');
-        this.discord_client = client;
-        this.account = account;
-        this.request_limits = new RequestLimits(Object.keys(COINS).length, true);
+      this.apiByCoinName = {};
+      for (const key in COINS) {
+        const coin = COINS[key]
+        const provider = new WsProvider(coin.socket);
+        const apiTypes = coin.types;
+        const apiTypesBundle = coin.typesBundle;
+        const apiOptions = coin.options;
+        const apiPromise = (apiOptions)
+          ? ApiPromise.create(apiOptions({ provider, types: apiTypes,}))
+          : ApiPromise.create({provider, types: apiTypes, typesBundle: apiTypesBundle});
+        this.apiByCoinName[coin.symbol] = apiPromise;
+      }
+      console.log('Finished constructing apis');
+      this.discord_client = client;
+      this.account = account;
+      this.request_limits = new RequestLimits(Object.keys(COINS).length, true);
     }
 
     async send_token(token, channel, address) {
-      // const api =
-      // if (this.api == null) {
-        //     this.api = await this.apiPromise;
-        //     await this.api.isReady;
-        //     const keyring = new Keyring({ type: 'sr25519' });
-        //     this.faucet = keyring.addFromMnemonic(this.account);
-        // }
-        console.log('call to send_token with parameters: ', token, channel, address);
-        const api = await this.apiByCoinName[token];
-        await api.isReady;
-        if (!this.faucet) {
-          const keyring = new Keyring({ type: 'sr25519' });
-          this.faucet = keyring.addFromMnemonic(this.account);
+      console.log('call to send_token with parameters: ', token, channel, address);
+      const api = await this.apiByCoinName[token];
+      await api.isReady;
+      if (!this.faucet) {
+        const keyring = new Keyring({ type: 'sr25519' });
+        this.faucet = keyring.addFromMnemonic(this.account);
+      }
+      const nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
+
+      const txResHandler = (result) => {
+        if (result.status.isFinalized) {
+          const msg = getFailedExtrinsicError(result.events, api);
+          if (msg != null) {
+            channel.send(`${coin.symbol} transfer failed: ${msg}`);
+          } else {
+            const id = result.status.asFinalized.toHex();
+            channel.send(`${coin.symbol} transfer complete: ${id}`);
+          }
+          unsub();
+        } else if (result.status.isInBlock) {
+          console.log(`INBLOCK`);
+        } else {
+          console.log(`Something else happened.`);
         }
-        const nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
-        //const { nonce } = await api.query.system.account(this.faucet.address);
+      }
 
-        const txResHandler = (result) => {
-            if (result.status.isFinalized) {
-                const msg = getFailedExtrinsicError(result.events, api);
-                if (msg != null) {
-                    channel.send(`${coin.symbol} transfer failed: ${msg}`);
-                } else {
-                    const id = result.status.asFinalized.toHex();
-                    channel.send(`${coin.symbol} transfer complete: ${id}`);
-                }
-                unsub();
-            } else if (result.status.isInBlock) {
-                console.log(`INBLOCK`);
-            } else {
-                console.log(`Something else happened.`);
-            }
+      const coin = COINS[token];
+      try {
+        console.log(`INFO: trying to send ${coin.amount} of ${token}`);
+        if (token == "DOL") {
+          const unsub = await api.tx.mantaPay
+            .publicTransfer({ id: coin.id, value: coin.amount.toString() }, address)
+            .signAndSend(this.faucet, { nonce }, txResHandler);
+        } else {
+          const unsub = await api.tx.balances
+            .transfer(address, value)
+            .signAndSend(this.faucet, { nonce }, txResHandler);
         }
 
-        const coin = COINS[token];
-        try {
-
-            console.log(`INFO: trying to send ${coin.amount} of ${token}`);
-            if (DOIN[symbol] == "DOL") {
-                const unsub = await api.tx.mantaPay
-                    .publicTransfer({ id: coin.id, value: coin.amount.toString() }, address)
-                    .signAndSend(this.faucet, { nonce }, txResHandler);
-            } else {
-                const unsub = await api.tx.balances
-                    .transfer(address, value)
-                    .signAndSend(this.faucet, { nonce }, txResHandler);
-            }
-
-        } catch (error) {
-            console.log(error);
-            channel.send(`${coin.symbol} transers failed!`);
-        }
+      } catch (error) {
+        console.log(error);
+        channel.send(`${coin.symbol} transers failed!`);
+      }
     }
 
     async process_transfer(request) {
-        const user_id = request.user_id;
-        const address = request.address;
-        const channel_id = request.channel_id;
-        const token = request.token;
-        const channel = this.discord_client.channels.cache.get(channel_id);
-        const response = this.request_limits.check(token, user_id, address);
-        if (response.error) {
-            message = `<@${user_id}> ${response.message}`;
-            await channel.send(message);
-        } else {
-            await this.send_token(token, channel, address);
-        }
+      const user_id = request.user_id;
+      const address = request.address;
+      const channel_id = request.channel_id;
+      const token = request.token;
+      const channel = this.discord_client.channels.cache.get(channel_id);
+      const response = this.request_limits.check(token, user_id, address);
+      if (response.error) {
+        message = `<@${user_id}> ${response.message}`;
+        await channel.send(message);
+      } else {
+        await this.send_token(token, channel, address);
+      }
     }
 }
 
