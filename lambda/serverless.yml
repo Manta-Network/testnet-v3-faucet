@@ -1,0 +1,59 @@
+service: testnet-v3-faucet
+
+frameworkVersion: '3'
+variablesResolutionMode: 20210326
+useDotenv: true
+
+plugins:
+  - serverless-offline
+
+package:
+  excludeDevDependencies: true
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: prod
+  profile: pelagos-dev
+  region: us-east-2
+  lambdaHashingVersion: 20201221
+  iam:
+    role:
+      name: testnet-v3-faucet
+      # https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html
+      statements:
+        -
+          Effect: Allow
+          Action:
+            - 'ssm:DescribeParameters'
+          Resource: '*'
+        -
+          Effect: Allow
+          Action:
+            - 'ssm:GetParameter'
+          Resource: 'arn:aws:ssm:us-east-2:684317180556:parameter/testnet_v3_faucet_*'
+        -
+          Effect: Allow
+          Action:
+            - 'sqs:SendMessage'
+          Resource: 'arn:aws:sqs:us-east-2:684317180556:testnet-v3-faucet.fifo'
+
+functions:
+  discordInteractions:
+    environment:
+      AWS_SQS_URL: ${ssm:/testnet_v3_faucet_aws_sqs_url}
+      DISCORD_APPLICATION_PUBLIC_KEY: ${ssm:/testnet_v3_faucet_discord_application_public_key}
+      DISCORD_GUILD_ID: ${ssm:/testnet_v3_faucet_discord_discord_guild_id}
+      DISCORD_CHANNEL_ID: ${ssm:/testnet_v3_faucet_discord_discord_channel_id}
+    handler: discord.interactions
+    events:
+      -
+        http:
+          path: discord/interactions
+          method: post
+          cors: true
+      -
+        http:
+          path: discord/interactions
+          method: get
+          cors: true
