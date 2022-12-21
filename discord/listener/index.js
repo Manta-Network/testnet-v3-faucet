@@ -22,6 +22,7 @@ const processQueuedMessages = async (sqs, faucet) => {
         console.log(`processed ${queue.Messages.length} messages from the queue.`);
     } else {
         console.log(`observed an empty queue.`);
+        await new Promise((r) => setTimeout(r, 1000));
     }
 };
 
@@ -33,6 +34,5 @@ const processQueuedMessages = async (sqs, faucet) => {
     const faucet = new Faucet(client, process.env.DOLPHIN_FAUCET_MNEMONIC);
     while (true) {
         await processQueuedMessages(sqs, faucet);
-        await new Promise((r) => setTimeout(r, 1000));
     }
 })();
