@@ -117,7 +117,7 @@ class Faucet {
           this.faucet = keyring.addFromMnemonic(this.account);
         }
         //let nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
-        const { nonce } = api.query.system.account(this.faucet.address);
+        const { nonce } = await api.query.system.account(this.faucet.address);
 
         const txResHandler = (result) => {
             if (result.status.isFinalized) {
