@@ -129,6 +129,7 @@ class Faucet {
         : await api.tx.balances
           .transfer(address, coin.amount)
           .signAndSend(this.faucet, { nonce }, txResHandler);
+      channel.send(`check you ${coin.symbol} balance...`);
     } catch (error) {
       console.log(error);
       channel.send(`i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
