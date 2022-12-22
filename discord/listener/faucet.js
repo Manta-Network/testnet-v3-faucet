@@ -123,7 +123,8 @@ class Faucet {
     const coin = COINS[token];
     try {
       console.log(`INFO: trying to send ${coin.amount} of ${token}`);
-      if (token == "DOL") {
+      /*
+      if (token === "DOL") {
         const unsub = await api.tx.mantaPay
           .publicTransfer({ id: coin.id, value: coin.amount.toString() }, address)
           .signAndSend(this.faucet, { nonce }, txResHandler);
@@ -132,6 +133,10 @@ class Faucet {
           .transfer(address, value)
           .signAndSend(this.faucet, { nonce }, txResHandler);
       }
+      */
+      const unsub = await api.tx.balances
+        .transfer(address, value)
+        .signAndSend(this.faucet, { nonce }, txResHandler);
 
     } catch (error) {
       console.log(error);
