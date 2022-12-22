@@ -117,8 +117,10 @@ class Faucet {
           await channel.send(`<@${userId}> ${coin.symbol} transfer complete: ${id}`);
         }
         unsub();
-      } else if (result.status.isInBlock) {
+      } else if (!!result.status.isInBlock) {
         console.log(`transaction status: in-block`);
+      } else if (!!result.status.broadcast) {
+        console.log(`transaction status: broadcast (${result.status.broadcast.join(', ')})`);
       } else {
         console.log(`transaction status: ${JSON.stringify(result)}`);
       }
