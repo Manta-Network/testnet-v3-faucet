@@ -14,10 +14,11 @@ const processQueuedMessages = async (sqs, faucet) => {
         console.log(`fetched ${queue.Messages.length} messages from the queue.`);
         for (const message of queue.Messages) {
             await faucet.process_transfer(JSON.parse(message.Body));
-            await sqs.deleteMessage({
-                QueueUrl: process.env.AWS_SQS_URL,
-                ReceiptHandle: message.ReceiptHandle,
-            }).promise();
+            try {
+                await sqs.deleteMessage({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: message.ReceiptHandle }).promise();
+            } catch (error) {
+                console.error(error);
+            }
         }
         console.log(`processed ${queue.Messages.length} messages from the queue.`);
     } else {
