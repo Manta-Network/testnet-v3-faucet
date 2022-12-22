@@ -107,20 +107,20 @@ class Faucet {
     }
     const nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
 
-    const txResHandler = (result) => {
+    const txResHandler = async (result) => {
       if (result.status.isFinalized) {
         const msg = getFailedExtrinsicError(result.events, api);
         if (msg != null) {
-          channel.send(`${coin.symbol} transfer failed: ${msg}`);
+          await channel.send(`<@${userId}> ${coin.symbol} transfer failed: ${msg}`);
         } else {
           const id = result.status.asFinalized.toHex();
-          channel.send(`${coin.symbol} transfer complete: ${id}`);
+          await channel.send(`<@${userId}> ${coin.symbol} transfer complete: ${id}`);
         }
         unsub();
       } else if (result.status.isInBlock) {
-        console.log(`INBLOCK`);
+        console.log(`transaction status: in-block`);
       } else {
-        console.log(`Something else happened.`);
+        console.log(`transaction status: ${JSON.stringify(result)}`);
       }
     }
     const coin = COINS[token];
