@@ -98,7 +98,7 @@ class Faucet {
   }
 
   async send_token(token, channel, address, userId) {
-    console.log('call to send_token with parameters: ', token, channel, address);
+    console.log(`send_token(token: ${token}, channel: ${channel.id}, address: ${address}), userId: ${userId})`);
     const api = await this.apiByCoinName[token];
     await api.isReady;
     if (!this.faucet) {
@@ -137,7 +137,7 @@ class Faucet {
           .signAndSend(this.faucet, { nonce }, txResHandler);
       await channel.send(`<@${userId}> check your ${coin.symbol} balance...`);
     } catch (error) {
-      console.log(error);
+      console.error(error);
       await channel.send(`<@${userId}> i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
     }
   }
