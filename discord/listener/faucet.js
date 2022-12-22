@@ -122,12 +122,12 @@ class Faucet {
     const coin = COINS[token];
     try {
       console.log(`INFO: trying to send ${coin.amount} of ${token}`);
-      const unsub = (token === "DOL")
+      const unsub = (['DOL', 'KMA'].includes(token))
         ? await api.tx.mantaPay
           .publicTransfer({ id: coin.id, value: coin.amount.toString() }, address)
           .signAndSend(this.faucet, { nonce }, txResHandler)
         : await api.tx.balances
-          .transfer(address, value)
+          .transfer(address, coin.amount)
           .signAndSend(this.faucet, { nonce }, txResHandler);
       }
     } catch (error) {
