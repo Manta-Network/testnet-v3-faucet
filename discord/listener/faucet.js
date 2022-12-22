@@ -129,9 +129,10 @@ class Faucet {
         : await api.tx.balances
           .transfer(address, coin.amount)
           .signAndSend(this.faucet, { nonce }, txResHandler);
+      await channel.send(`<@${userId}> check your ${coin.symbol} balance...`);
     } catch (error) {
       console.log(error);
-      channel.send(`<@${userId}> i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
+      await channel.send(`<@${userId}> i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
     }
   }
 
@@ -143,10 +144,9 @@ class Faucet {
     const channel = this.discord_client.channels.cache.get(channel_id);
     const response = this.request_limits.check(token, userId, address);
     if (response.error) {
-      channel.send(`<@${userId}> ${response.message}`);
+      await channel.send(`<@${userId}> ${response.message}`);
     } else {
       await this.send_token(token, channel, address, userId);
-      channel.send(`<@${userId}> check your ${coin.symbol} balance...`);
     }
   }
 }
