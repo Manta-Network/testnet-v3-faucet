@@ -68,7 +68,7 @@ const types = {
 const COINS = {
   DOL: { id: 1, symbol: "DOL", amount: (BigInt(100) * BigInt(10 ** 12)), socket: "wss://ws.calamari.seabird.systems", types: types },
   KSM: { symbol: "KSM", amount: (BigInt(10) * BigInt(10 ** 12)), socket: "wss://ws.internal.kusama.systems" },
-  //KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: "wss://ws.acala.seabird.systems", options: options },
+  KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: "wss://ws.acala.seabird.systems", options: options },
   MOVR: { symbol: "MOVR", amount: (BigInt(10) * BigInt(10 ** 18)), socket: "wss://ws.moonriver.seabird.systems", typesBundle: typesBundlePre900},
 };
 
@@ -77,15 +77,19 @@ class Faucet {
     console.log('Constructing faucet');
     this.apiByCoinName = {};
     for (const key in COINS) {
-      const coin = COINS[key]
-      const provider = new WsProvider(coin.socket);
-      const apiTypes = coin.types;
-      const apiTypesBundle = coin.typesBundle;
-      const apiOptions = coin.options;
-      const apiPromise = (apiOptions)
-        ? ApiPromise.create(apiOptions({ provider, types: apiTypes,}))
-        : ApiPromise.create({provider, types: apiTypes, typesBundle: apiTypesBundle});
-      this.apiByCoinName[coin.symbol] = apiPromise;
+      try {
+        const coin = COINS[key]
+        const provider = new WsProvider(coin.socket);
+        const apiTypes = coin.types;
+        const apiTypesBundle = coin.typesBundle;
+        const apiOptions = coin.options;
+        const apiPromise = (apiOptions)
+          ? ApiPromise.create(apiOptions({ provider, types: apiTypes,}))
+          : ApiPromise.create({provider, types: apiTypes, typesBundle: apiTypesBundle});
+        this.apiByCoinName[coin.symbol] = apiPromise;
+      } catch (error) {
+        console.error(error);
+      }
     }
     console.log('Finished constructing apis');
     this.discord_client = client;
