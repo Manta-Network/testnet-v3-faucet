@@ -93,7 +93,7 @@ class Faucet {
     this.request_limits = new RequestLimits(Object.keys(COINS).length, true);
   }
 
-  async send_token(token, channel, address) {
+  async send_token(token, channel, address, userId) {
     console.log('call to send_token with parameters: ', token, channel, address);
     const api = await this.apiByCoinName[token];
     await api.isReady;
@@ -129,25 +129,24 @@ class Faucet {
         : await api.tx.balances
           .transfer(address, coin.amount)
           .signAndSend(this.faucet, { nonce }, txResHandler);
-      channel.send(`check you ${coin.symbol} balance...`);
     } catch (error) {
       console.log(error);
-      channel.send(`i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
+      channel.send(`<@${userId}> i checked but it seems i'm not as flush with ${coin.symbol} as i'd like to be. maybe some other time.`);
     }
   }
 
   async process_transfer(request) {
-    const user_id = request.user_id;
+    const userId = request.user_id;
     const address = request.address;
     const channel_id = request.channel_id;
     const token = request.token;
     const channel = this.discord_client.channels.cache.get(channel_id);
-    const response = this.request_limits.check(token, user_id, address);
+    const response = this.request_limits.check(token, userId, address);
     if (response.error) {
-      message = `<@${user_id}> ${response.message}`;
-      await channel.send(message);
+      channel.send(`<@${userId}> ${response.message}`);
     } else {
-      await this.send_token(token, channel, address);
+      await this.send_token(token, channel, address, userId);
+      channel.send(`<@${userId}> check your ${coin.symbol} balance...`);
     }
   }
 }
