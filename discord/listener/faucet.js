@@ -98,12 +98,11 @@ class Faucet {
   }
 
   async send_token(token, channel, address, userId) {
-    console.log(`send_token(token: ${token}, channel: ${channel.id}, address: ${address}), userId: ${userId})`);
+    console.log(`send_token(token: ${token}, channel: ${channel.id}, address: ${address}, userId: ${userId})`);
     const api = await this.apiByCoinName[token];
     await api.isReady;
     if (!this.faucet) {
-      const keyring = new Keyring({ type: 'sr25519' });
-      this.faucet = keyring.addFromMnemonic(this.account);
+      this.faucet = (new Keyring({ type: 'sr25519' })).addFromMnemonic(this.account);
     }
     const nonce = await api.rpc.system.accountNextIndex(this.faucet.address);
 
