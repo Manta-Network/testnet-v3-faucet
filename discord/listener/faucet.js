@@ -119,28 +119,20 @@ class Faucet {
         console.log(`Something else happened.`);
       }
     }
-
     const coin = COINS[token];
     try {
       console.log(`INFO: trying to send ${coin.amount} of ${token}`);
-      /*
-      if (token === "DOL") {
-        const unsub = await api.tx.mantaPay
+      const unsub = (token === "DOL")
+        ? await api.tx.mantaPay
           .publicTransfer({ id: coin.id, value: coin.amount.toString() }, address)
-          .signAndSend(this.faucet, { nonce }, txResHandler);
-      } else {
-        const unsub = await api.tx.balances
+          .signAndSend(this.faucet, { nonce }, txResHandler)
+        : await api.tx.balances
           .transfer(address, value)
           .signAndSend(this.faucet, { nonce }, txResHandler);
       }
-      */
-      const unsub = await api.tx.balances
-        .transfer(address, coin.amount)
-        .signAndSend(this.faucet, { nonce }, txResHandler);
-
     } catch (error) {
       console.log(error);
-      channel.send(`${coin.symbol} transers failed!`);
+      channel.send(`i checked but it seems i don't actually have any ${coin.symbol} to give you. maybe some other time.`);
     }
   }
 
