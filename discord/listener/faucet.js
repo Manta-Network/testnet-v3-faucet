@@ -129,7 +129,6 @@ class Faucet {
         : await api.tx.balances
           .transfer(address, coin.amount)
           .signAndSend(this.faucet, { nonce }, txResHandler);
-      }
     } catch (error) {
       console.log(error);
       channel.send(`i checked but it seems i don't actually have any ${coin.symbol} to give you. maybe some other time.`);
