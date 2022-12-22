@@ -135,7 +135,7 @@ class Faucet {
       }
       */
       const unsub = await api.tx.balances
-        .transfer(address, value)
+        .transfer(address, coin.amount)
         .signAndSend(this.faucet, { nonce }, txResHandler);
 
     } catch (error) {
