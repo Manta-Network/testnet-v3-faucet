@@ -1,5 +1,5 @@
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
-const BN = require('bn.js');
+//const BN = require('bn.js');
 const { getFailedExtrinsicError } = require('./failed');
 const { RequestLimits } = require('./limit');
 const { options } = require('@acala-network/api');
@@ -66,10 +66,10 @@ const types = {
 }
 
 const COINS = {
-  DOL: { id: 1, symbol: "DOL", amount: new BN(100) * new BN(10).pow(new BN(18)), socket: "wss://ws.dolphin.seabird.systems", types: types },
-  KSM: { symbol: "KSM", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://ws.internal.kusama.systems" },
-  KAR: { symbol: "KAR", amount: new BN(10) * new BN(10).pow(new BN(12)), socket: "wss://ws.acala.seabird.systems", options: options },
-  MOVR: { symbol: "MOVR", amount: new BN(10) * new BN(10).pow(new BN(18)), socket: "wss://ws.moonriver.seabird.systems", typesBundle: typesBundlePre900},
+  DOL: { id: 1, symbol: "DOL", amount: (BigInt(100) * BigInt(10 ** 12)), socket: "wss://ws.dolphin.seabird.systems", types: types },
+  KSM: { symbol: "KSM", amount: (BigInt(10) * BigInt(10 ** 12)), socket: "wss://ws.internal.kusama.systems" },
+  KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: "wss://ws.acala.seabird.systems", options: options },
+  MOVR: { symbol: "MOVR", amount: (BigInt(10) * BigInt(10 ** 18)), socket: "wss://ws.moonriver.seabird.systems", typesBundle: typesBundlePre900},
 };
 
 class Faucet {
