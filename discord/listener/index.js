@@ -3,27 +3,32 @@ const { SQS } = require('aws-sdk');
 const { Client, Events, GatewayIntentBits } = require('discord.js');
 
 const processQueuedMessages = async (sqs, faucet) => {
-    const queue = await sqs.receiveMessage({
-        MaxNumberOfMessages: 10,
-        MessageAttributeNames: ['All'],
-        QueueUrl: process.env.AWS_SQS_URL,
-        VisibilityTimeout: 10,
-        WaitTimeSeconds: 0
-    }).promise();
-    if (!!queue.Messages) {
-        console.log(`fetched ${queue.Messages.length} messages from the queue.`);
-        for (const message of queue.Messages) {
-            await faucet.process_transfer(JSON.parse(message.Body));
-            try {
-                await sqs.deleteMessage({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: message.ReceiptHandle }).promise();
-            } catch (error) {
-                console.error(error);
+    try {
+        const queue = await sqs.receiveMessage({
+            MaxNumberOfMessages: 10,
+            MessageAttributeNames: ['All'],
+            QueueUrl: process.env.AWS_SQS_URL,
+            VisibilityTimeout: 10,
+            WaitTimeSeconds: 0
+        }).promise();
+        if (!!queue.Messages) {
+            console.log(`fetched ${queue.Messages.length} messages from the queue.`);
+            for (const message of queue.Messages) {
+                await faucet.process_transfer(JSON.parse(message.Body));
+                try {
+                    await sqs.deleteMessage({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: message.ReceiptHandle }).promise();
+                } catch (error) {
+                    console.error(error);
+                }
             }
+            console.log(`processed ${queue.Messages.length} messages from the queue.`);
+        } else {
+            console.log(`observed an empty queue.`);
+            await new Promise((r) => setTimeout(r, 3000));
         }
-        console.log(`processed ${queue.Messages.length} messages from the queue.`);
-    } else {
-        console.log(`observed an empty queue.`);
-        await new Promise((r) => setTimeout(r, 3000));
+    } catch (error) {
+        console.error(error);
+        await new Promise((r) => setTimeout(r, 10000));
     }
 };
 
