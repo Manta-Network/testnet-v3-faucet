@@ -8,8 +8,13 @@
   "license": "GPL-3.0-or-later",
   "private": false,
   "dependencies": {
+    "@acala-network/api": "^4.1.8-2.3",
     "@aws-sdk/client-sqs": "^3.235.0",
+    "@polkadot/api": "^9.10.3",
     "@polkadot/keyring": "^10.2.1",
+    "@polkadot/util-crypto": "^10.2.1",
+    "moonbeam-types-bundle": "^2.0.9",
+    "node-fetch": "2",
     "tweetnacl": "^1.0.3"
   },
   "resolutions": {

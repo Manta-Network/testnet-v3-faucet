@@ -36,9 +36,22 @@ provider:
           Effect: Allow
           Action:
             - 'sqs:SendMessage'
+            - 'sqs:DeleteMessage'
+            - 'sqs:GetQueueAttributes'
+            - 'sqs:ReceiveMessage'
           Resource: 'arn:aws:sqs:us-east-2:684317180556:testnet-v3-faucet.fifo'
 
 functions:
+  faucet:
+    environment:
+      AWS_SQS_URL: ${ssm:/testnet_v3_faucet_aws_sqs_url}
+      DISCORD_APPLICATION_ID: ${ssm:/testnet_v3_faucet_discord_application_id}
+      DISCORD_GUILD_ID: ${ssm:/testnet_v3_faucet_discord_discord_guild_id}
+      DISCORD_CHANNEL_ID: ${ssm:/testnet_v3_faucet_discord_discord_channel_id}
+      FAUCET_MNEMONIC: ${ssm:/testnet_v3_faucet_mnemonic} 
+    handler: faucet.open
+    events:
+      - sqs: 'arn:aws:sqs:us-east-2:684317180556:testnet-v3-faucet.fifo'
   discordInteractions:
     environment:
       AWS_SQS_URL: ${ssm:/testnet_v3_faucet_aws_sqs_url}

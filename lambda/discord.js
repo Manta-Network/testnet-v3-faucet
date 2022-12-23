@@ -1,9 +1,10 @@
 'use strict';
 
 const { SQSClient, SendMessageCommand } = require('@aws-sdk/client-sqs');
+const sqsClient = new SQSClient({ region: 'us-east-2' });
 const nacl = require('tweetnacl');
 const { decodeAddress } = require('@polkadot/keyring');
-const sqsClient = new SQSClient({ region: 'us-east-2' });
+
 const defaultResponse = {
   headers: {
     'Access-Control-Allow-Origin': '*',
@@ -18,194 +19,125 @@ const knownCommands = {
   'gimme-movr': 'MOVR',
 };
 
+const isAuthentic = (event) => nacl.sign.detached.verify(
+  Buffer.from(event.headers['x-signature-timestamp'] + event.body),
+  Buffer.from(event.headers['x-signature-ed25519'], 'hex'),
+  Buffer.from(process.env.DISCORD_APPLICATION_PUBLIC_KEY, 'hex')
+);
+
+const responseBuilder = (statusCode, body) => {
+  return {
+    ...defaultResponse,
+    statusCode,
+    body: JSON.stringify(body, null, 2 ),
+  };
+};
+
+const discordResponseBuilder = (content, flags) => responseBuilder(
+  200,
+  {
+    type: 4,
+    data: {
+      allowed_mentions: {
+        parse: [
+          'users'
+        ],
+        users: []
+      },
+      content,
+      flags,
+    },
+  }
+);
+
 module.exports.interactions = async (event) => {
   let response;
   try {
-    const valid = nacl.sign.detached.verify(
-      Buffer.from(event.headers['x-signature-timestamp'] + event.body),
-      Buffer.from(event.headers['x-signature-ed25519'], 'hex'),
-      Buffer.from(process.env.DISCORD_APPLICATION_PUBLIC_KEY, 'hex'));
-    if (valid) {
-      const { channel_id, data, member, type } = JSON.parse(event.body);
+    if (isAuthentic(event)) {
+      const { channel_id, data, member, type, id: interactionId, token: interactionToken } = JSON.parse(event.body);
       switch (type) {
         case 1:
-          response = {
-            ...defaultResponse,
-            statusCode: 200,
-            body: JSON.stringify({ type: 1 }, null, 2 ),
-          };
+          response = responseBuilder(200, { type: 1 });
           break;
         case 2:
           const command = data.name;
           const token = knownCommands[command];
           if (token === undefined) {
-            response = {
-              ...defaultResponse,
-              statusCode: 404,
-              body: JSON.stringify({ message: 'unrecognised command', command }, null, 2 ),
-            };
+            response = responseBuilder(404, { message: 'unrecognised command', command });
           } else if (channel_id !== process.env.DISCORD_CHANNEL_ID) {
-            response = {
-              ...defaultResponse,
-              statusCode: 200,
-              body: JSON.stringify(
-                {
-                  type: 4,
-                  data: {
-                    allowed_mentions: {
-                      parse: [
-                        'users'
-                      ],
-                      users: []
-                    },
-                    content: `please send your faucet requests to <#${process.env.DISCORD_CHANNEL_ID}> channel`,
-                    flags: (1<<6),
-                  },
-                },
-                null,
-                2
-              ),
-            };
+            response = discordResponseBuilder(`<@${member.user.id}> please send your faucet requests to <#${process.env.DISCORD_CHANNEL_ID}> channel`, (1<<6));
           } else {
             const userId = member.user.id;
-            const answer = {
-              yes: [
-                `i'll see what i can do`,
-                `i'll think about it`,
-                `i'm thinking about it`,
-                `the cheque's in the post`,
-                `ok, why not`,
-                `maybe i'll help you`,
-              ],
-              no: [
-                `i don't think so. try me later...`,
-                `i don't feel like it. try me later...`,
-                `i'm washing my hair. try me later...`,
-                `i'm busy. try me later...`,
-                `some other time`,
-                `i can't find my wallet right now. try me later...`,
-                `i'm not in the mood. try me later...`,
-              ],
-            };
             try {
               decodeAddress(data.options[0].value);
             } catch (error) {
               console.error(error);
-              response = {
-                ...defaultResponse,
-                statusCode: 200,
-                body: JSON.stringify(
-                  {
-                    type: 4,
-                    data: {
-                      allowed_mentions: {
-                        parse: [
-                          'users'
-                        ],
-                        users: []
-                      },
-                      content: `<@${userId}> the given address is not a valid ${knownCommands[command].toLowerCase()} account`,
-                      flags: 0,
-                    },
-                  },
-                  null,
-                  2
-                ),
-              };
+              response = discordResponseBuilder(`<@${userId}> the given address is not a valid ${knownCommands[command].toLowerCase()} account`, (1<<6));
               break;
             }
             try {
               const enqued = await sqsClient.send(new SendMessageCommand({
-                MessageBody: JSON.stringify({
-                  channel_id,
-                  address: data.options[0].value,
-                  user_id:  member.user.id,
-                  token: token,
-                }),
-                MessageDeduplicationId: member.user.id,
+                MessageBody: event.body,
+                MessageAttributes: {
+                  channelId: {
+                    DataType: 'String',
+                    StringValue: channel_id
+                  },
+                  userId: {
+                    DataType: 'String',
+                    StringValue: userId
+                  },
+                  username: {
+                    DataType: 'String',
+                    StringValue: member.user.username
+                  },
+                  interactionId: {
+                    DataType: 'String',
+                    StringValue: interactionId
+                  },
+                  interactionToken: {
+                    DataType: 'String',
+                    StringValue: interactionToken
+                  },
+                  address: {
+                    DataType: 'String',
+                    StringValue: data.options[0].value
+                  },
+                  token: {
+                    DataType: 'String',
+                    StringValue: token
+                  },
+                },
+                MessageDeduplicationId: interactionId,
                 MessageGroupId: token,
                 QueueUrl: process.env.AWS_SQS_URL,
               }));
-              response = {
-                ...defaultResponse,
-                statusCode: 200,
-                body: JSON.stringify(
-                  {
-                    type: 4,
-                    data: {
-                      allowed_mentions: {
-                        parse: [
-                          'users'
-                        ],
-                        users: []
-                      },
-                      content: `<@${userId}> ${answer.yes[Math.floor((Math.random() * answer.yes.length))]}`,
-                      flags: 0,
-                    },
-                  },
-                  null,
-                  2
-                ),
-              };
+              const message = `your ${token.toLowerCase()} token request is queued.`;
+              response = discordResponseBuilder(`<@${userId}> ${message}`, (1<<6));
             } catch (error) {
               console.error(error);
-              response = {
-                ...defaultResponse,
-                statusCode: 200,
-                body: JSON.stringify(
-                  {
-                    type: 4,
-                    data: {
-                      allowed_mentions: {
-                        parse: [
-                          'users'
-                        ],
-                        users: []
-                      },
-                      content: `<@${userId}> ${answer.no[Math.floor((Math.random() * answer.no.length))]}`,
-                      flags: 0,
-                    },
-                  },
-                  null,
-                  2
-                ),
-              };
+              const message = `your ${token.toLowerCase()} token request could not be processed just now. please try later.`;
+              response = discordResponseBuilder(`<@${userId}> ${message}`, (1<<6));
               break;
             }
           }
           break;
         default:
-          response = {
-            ...defaultResponse,
-            statusCode: 404,
-            body: JSON.stringify({ message: 'unrecognised type', type }, null, 2 ),
-          };
+          response = responseBuilder(404, { message: 'unrecognised type', type });
           break;
       }
     } else {
-      response = {
-        ...defaultResponse,
-        statusCode: 403,
-        body: JSON.stringify(
-          {
-            message: 'signature verification failure',
-            request: {
-              headers: event.headers,
-              method: event.method,
-            },
-          },
-          null,
-          2
-        ),
-      };
+      response = responseBuilder(403, {
+        message: 'signature verification failure',
+        request: {
+          headers: event.headers,
+          method: event.method,
+        },
+      });
     }
   } catch (error) {
     console.error(error);
-    response = {
-      ...defaultResponse,
-      statusCode: 500,
-      body: JSON.stringify({ error }, null, 2),
-    };
+    response = responseBuilder(500, { error });
   }
   console.log(response);
   return response;
