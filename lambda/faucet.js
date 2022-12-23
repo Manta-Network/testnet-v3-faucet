@@ -67,6 +67,15 @@ const types = {
     "proof": "[u8; 128]"
   }
 };
+const cache = {
+  lifetime: 3600 * 24,
+};
+const cacheAppend = (key, value) => {
+  cache[key] = {
+    expires: Date.now() + cache.lifetime * 1000,
+    value
+  };
+}
 
 const getExtrinsicError = function (events, api) {
   let errorMessage = null;
@@ -96,40 +105,108 @@ const getExtrinsicError = function (events, api) {
   return errorMessage;
 }
 
-const txResponseHandler = async (result, api, token, interaction) => {
-  if (!!result.txHash) {
-    console.log(`transaction status: ${JSON.stringify(result)}`);
-    const options = {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        content: `<@${interaction.user.id}> your ${token.toLowerCase()} tokens were sent in tx: ${result.txHash}`,
-        ...(token === 'DOL') && {
-          embeds: [
-            {
-              title: 'view on subscan',
-              url: `https://dolphin.subscan.io/extrinsic/${result.txHash}`,
-              type: 'rich',
-              thumbnail: {
-                url: 'https://raw.githubusercontent.com/Manta-Network/Logos/main/dolphin/dolphin_logo.png',
-                height: 50,
-                width: 50,
+const notify = async (interaction, token, cacheKey) => {
+  const { fxHash, fxTime, bxHash, bxTime, txHash, txTime } = cache[cacheKey].value;
+  const options = {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      content: (!!fxHash)
+        ? `<@${interaction.user.id}> your ${token.toLowerCase()} tokens were sent at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(fxTime).toLowerCase()} (utc) in tx: ${fxHash}`
+        : (!!bxHash)
+          ? `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(bxTime).toLowerCase()} (utc) with in block: ${bxHash}`
+          : (!!txHash)
+            ? `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(txTime).toLowerCase()} (utc) with tx hash: ${txHash}`
+            : `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer is in progress`,
+      ...(token === 'DOL' && (!!fxHash || !!bxHash)) && {
+        embeds: (!!fxHash)
+          ? [
+              {
+                title: 'view on polkadot.js',
+                url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${fxHash}`,
+                type: 'rich',
+                thumbnail: {
+                  url: chains[token].logo,
+                  height: 50,
+                  width: 50,
+                },
               },
-            }
-          ]
-        },
-      })
-    };
+              {
+                title: 'view on subscan',
+                url: `https://dolphin.subscan.io/extrinsic/${fxHash}`,
+                type: 'rich',
+                thumbnail: {
+                  url: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/subscan.png',
+                  height: 50,
+                  width: 50,
+                },
+              }
+            ]
+          : [
+              {
+                title: 'view on polkadot.js',
+                url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${bxHash}`,
+                type: 'rich',
+                thumbnail: {
+                  url: chains[token].logo,
+                  height: 50,
+                  width: 50,
+                },
+              }
+            ]
+      },
+      ...(token != 'DOL' && (!!fxHash || !!bxHash)) && {
+        embeds: [
+          {
+            title: 'view on polkadot.js',
+            url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${(fxHash || bxHash)}`,
+            type: 'rich',
+            thumbnail: {
+              url: chains[token].logo,
+              height: 50,
+              width: 50,
+            },
+          }
+        ]
+      },
+    })
+  };
+  try {
     const original = await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interaction.token}/messages/@original`, options);
     const { id } = await original.json();
     const update = await fetch(`https://discord.com/api/v10/webhooks/${process.env.DISCORD_APPLICATION_ID}/${interaction.token}/messages/${id}`, options);
     const json = await update.json();
     console.log(`discord update: ${JSON.stringify(json)}`);
-  } else {
-    console.log(`transaction status: ${JSON.stringify(result)}`);
+  } catch (error) {
+    console.error(error);
   }
+};
+
+const txResponseHandler = (result, api, token, interaction, address) => {
+  const cacheKey = `${token}_${address}`;
+  const isInProgress = (!!cache[cacheKey] && !!cache[cacheKey].value && !!cache[cacheKey].value.txHash);
+  const cached = {
+    ...(!!cache[cacheKey]) && {
+      ...cache[cacheKey].value,
+    },
+    //...result,
+    ...(!!result.txHash && !isInProgress) && {
+      txHash: result.txHash,
+      txTime: new Date(),
+    },
+    ...(!!result.status && !!result.status.finalized) && {
+      fxHash: result.status.finalized,
+      fxTime: new Date(),
+    },
+    ...(!!result.status && !!result.status.inBlock) && {
+      bxHash: result.status.inBlock,
+      bxTime: new Date(),
+    },
+  };
+  cacheAppend(cacheKey, cached);
+  console.log(`transaction status: ${JSON.stringify(cached)}`);
 }
 
 const sendToken = async (token, address, interaction) => {
@@ -139,28 +216,36 @@ const sendToken = async (token, address, interaction) => {
   await Promise.all([ api.isReady, cryptoWaitReady() ]);
   const faucet = (new Keyring({ type: schema })).addFromMnemonic(process.env.FAUCET_MNEMONIC);
   const nonce = await api.rpc.system.accountNextIndex(faucet.address);
-  let message;
   try {
     const unsub = (!!id)
       ? await api.tx.mantaPay
         .publicTransfer({ id, value: amount.toString() }, address)
-        .signAndSend(faucet, { nonce }, (response) => txResponseHandler(response, api, token, interaction))
+        .signAndSend(faucet, { nonce }, async (response) => {
+          txResponseHandler(response, api, token, interaction, address);
+          if (!!response.status && (!!response.status.finalized || !!response.status.inBlock)) {
+            await notify(interaction, token, `${token}_${address}`);
+            await unsub();
+          }
+        })
       : await api.tx.balances
         .transfer(address, amount)
-        .signAndSend(faucet, { nonce }, (response) => txResponseHandler(response, api, token, interaction));
-    message = `check your ${token.toLowerCase()} balance. i've sent you tokens.`;
+        .signAndSend(faucet, { nonce }, async (response) => {
+          await txResponseHandler(response, api, token, interaction, address);
+          if (!!response.status && (!!response.status.finalized || !!response.status.inBlock)) {
+            await notify(interaction, token, `${token}_${address}`);
+            await unsub();
+          }
+        });
   } catch (error) {
     console.error(error);
-    message = `i'm unable to send you ${token.toLowerCase()} token at this time. please try later.`;
   }
-  return message;
 };
 
 const chains = {
-  DOL: { /*id: 1,*/ symbol: "DOL", amount: (BigInt(100) * BigInt(10 ** 12)), socket: 'wss://ws.calamari.seabird.systems', types, schema: 'sr25519' },
-  KSM: { symbol: "KSM", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.internal.kusama.systems', schema: 'sr25519' },
-  KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.acala.seabird.systems', options, schema: 'sr25519' },
-  MOVR: { symbol: "MOVR", amount: (BigInt(10) * BigInt(10 ** 18)), socket: 'wss://ws.moonriver.seabird.systems', typesBundle: typesBundlePre900, schema: 'sr25519' },
+  DOL: { /*id: 1,*/ symbol: "DOL", amount: (BigInt(100) * BigInt(10 ** 12)), socket: 'wss://ws.calamari.seabird.systems', types, schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/dol.png' },
+  KSM: { symbol: "KSM", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.internal.kusama.systems', schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/ksm.png' },
+  KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.acala.seabird.systems', options, schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/kar.png' },
+  MOVR: { symbol: "MOVR", amount: (BigInt(10) * BigInt(10 ** 18)), socket: 'wss://ws.moonriver.seabird.systems', typesBundle: typesBundlePre900, schema: 'ethereum', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/movr.png' },
 };
 
 module.exports.open = async (event) => {
@@ -173,16 +258,20 @@ module.exports.open = async (event) => {
       },
     };
     const [
-      message,
-      sqsDelete,
-    ] = await Promise.all([
-      sendToken(messageAttributes.token.stringValue, messageAttributes.address.stringValue, interaction),
-      sqsClient.send(new DeleteMessageCommand({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: receiptHandle })),
-    ]);
-    return {
-      message,
-      interaction,
-    };
+      address,
+      symbol,
+    ] = [
+      messageAttributes.address.stringValue,
+      messageAttributes.token.stringValue,
+    ];
+    const cacheKey = `${symbol}_${address}`;
+    sqsClient.send(new DeleteMessageCommand({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: receiptHandle }));
+    if (!cache[cacheKey] || cache[cacheKey].expires < Date.now()) {
+      await sendToken(symbol, address, interaction);
+    } else {
+      await notify(interaction, symbol, cacheKey);
+    }
+    return interaction;
   }));
   
 };

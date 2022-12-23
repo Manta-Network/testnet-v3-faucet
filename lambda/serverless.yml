@@ -43,6 +43,7 @@ provider:
 
 functions:
   faucet:
+    timeout: 29
     environment:
       AWS_SQS_URL: ${ssm:/testnet_v3_faucet_aws_sqs_url}
       DISCORD_APPLICATION_ID: ${ssm:/testnet_v3_faucet_discord_application_id}
