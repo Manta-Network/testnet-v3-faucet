@@ -6,7 +6,8 @@ const { putRequest } = require('./crud');
 const { SQSClient, DeleteMessageCommand } = require('@aws-sdk/client-sqs');
 const sqsClient = new SQSClient({ region: 'us-east-2' });
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
-const { cryptoWaitReady } = require('@polkadot/util-crypto');
+const { u8aToHex } = require('@polkadot/util');
+const { cryptoWaitReady, mnemonicToLegacySeed, hdEthereum } = require('@polkadot/util-crypto');
 const { chains } = require('./const');
 const cache = {
   lifetime: 3600 * 24,
@@ -123,12 +124,18 @@ const transactionResponseHandler = (event, api, symbol, interaction, address) =>
   console.log(`transaction status: ${JSON.stringify(cached)}`);
 }
 
+const getFaucet = (schema) => (
+  (schema === 'ethereum')
+    ? new Keyring({ type: schema }).addFromUri(u8aToHex(hdEthereum(mnemonicToLegacySeed(process.env.FAUCET_MNEMONIC, '', false, 64), ("m/44'/60'/0'/0/" + 0)).secretKey))
+    : new Keyring({ type: schema }).addFromMnemonic(process.env.FAUCET_MNEMONIC)
+);
+
 const sendToken = async (symbol, address, interaction, collection) => {
   const { amount, id, options, schema, socket, types, typesBundle } = chains[symbol];
   const provider = new WsProvider(socket);
   const api = await ApiPromise.create((!!options) ? options({ provider, types }) : ({ provider, types, typesBundle }));
   await Promise.all([ api.isReady, cryptoWaitReady() ]);
-  const faucet = (new Keyring({ type: schema })).addFromMnemonic(process.env.FAUCET_MNEMONIC);
+  const faucet = getFaucet(schema);
   const nonce = await api.rpc.system.accountNextIndex(faucet.address);
   try {
     const unsub = (!!id)
@@ -197,6 +204,7 @@ const sendToken = async (symbol, address, interaction, collection) => {
           }
         });
   } catch (error) {
+    console.log(`failed sending from ${symbol} faucet: ${faucet.address}, to: ${address} (${interaction.user.username}/${interaction.user.id})`);
     console.error(error);
   }
 };
