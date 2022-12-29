@@ -1,5 +1,5 @@
-const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 
+const { REST, Routes, SlashCommandBuilder } = require('discord.js');
 const discord = {
     clientId: process.env.DISCORD_APPLICATION_ID,
     guildId: process.env.DISCORD_GUILD_ID,
@@ -20,9 +20,9 @@ const rest = new REST({ version: '10' }).setToken(discord.token);
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: [] })
     .then(() => console.log('deleted existing guild commands.'))
     .catch(console.error);
-rest.put(Routes.applicationCommands(discord.clientId), { body: [] })
-    .then(() => console.log('deleted existing application commands.'))
-    .catch(console.error);
 rest.put(Routes.applicationGuildCommands(discord.clientId, discord.guildId), { body: commands })
     .then(() => console.log(`created guild commands: ${commands.map((c) => c.name).join(', ')}`))
     .catch(console.error);
+
+console.log(`DISCORD_APPLICATION_ID: ${process.env.DISCORD_APPLICATION_ID}`);
+console.log(`DISCORD_GUILD_ID: ${process.env.DISCORD_GUILD_ID}`);

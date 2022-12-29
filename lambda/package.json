@@ -2,7 +2,7 @@
   "name": "@testnet-v3-faucet/lambda",
   "version": "0.0.1",
   "description": "queue discord commands and messages in aws sqs",
-  "main": "discord.js",
+  "main": "listener.js",
   "repository": "https://github.com/Manta-Network/testnet-v3-faucet",
   "author": "manta ops <ops@manta.network>",
   "license": "GPL-3.0-or-later",
@@ -13,6 +13,7 @@
     "@polkadot/api": "^9.10.3",
     "@polkadot/keyring": "^10.2.1",
     "@polkadot/util-crypto": "^10.2.1",
+    "mongodb": "^4.13.0",
     "moonbeam-types-bundle": "^2.0.9",
     "node-fetch": "2",
     "tweetnacl": "^1.0.3"

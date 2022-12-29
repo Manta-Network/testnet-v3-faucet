@@ -1,72 +1,13 @@
 'use strict';
 
 const fetch = require('node-fetch');
+const { MongoClient } = require('mongodb');
+const { putRequest } = require('./crud');
 const { SQSClient, DeleteMessageCommand } = require('@aws-sdk/client-sqs');
 const sqsClient = new SQSClient({ region: 'us-east-2' });
 const { ApiPromise, WsProvider, Keyring } = require('@polkadot/api');
 const { cryptoWaitReady } = require('@polkadot/util-crypto');
-const { options } = require('@acala-network/api');
-const { typesBundlePre900 } = require('moonbeam-types-bundle');
-const types = {
-  "Checkpoint": {
-    "receiver_index": "[u64; 256]",
-    "sender_index": "u64"
-  },
-  "Asset": {
-    "id": "[u8; 32]",
-    "value": "[u8; 16]"
-  },
-  "Utxo": {
-    "is_transparent": "bool",
-    "public_asset": "Asset",
-    "commitment": "[u8; 32]"
-  },
-  "IncomingNote": {
-    "ephemeral_public_key": "[u8; 32]",
-    "tag": "[u8; 32]",
-    "ciphertext": "[[u8; 32]; 3]"
-  },
-  "LightIncomingNote": {
-    "ephemeral_public_key": "[u8; 32]",
-    "ciphertext": "[[u8; 32]; 3]"
-  },
-  "FullIncomingNote": {
-    "address_partition": "u8",
-    "incoming_note": "IncomingNote",
-    "light_incoming_note": "LightIncomingNote"
-  },
-  "OutgoingNote": {
-    "ephemeral_public_key": "[u8; 32]",
-    "ciphertext": "[[u8; 32]; 2]"
-  },
-  "PullResponse": {
-    "should_continue": "bool",
-    "receivers": "Vec<(Utxo, FullIncomingNote)>",
-    "senders": "Vec<([u8; 32], OutgoingNote)>"
-  },
-  "AuthorizationSignature": {
-    "authorization_key": "[u8; 32]",
-    "signature": "([u8; 32], [u8; 32])"
-  },
-  "SenderPost": {
-    "utxo_accumulator_output": "[u8; 32]",
-    "nullifier_commitment": "[u8; 32]",
-    "outgoing_note": "OutgoingNote"
-  },
-  "ReceiverPost": {
-    "utxo": "Utxo",
-    "note": "FullIncomingNote"
-  },
-  "TransferPost": {
-    "authorization_signature": "Option<AuthorizationSignature>",
-    "asset_id": "Option<[u8; 32]>",
-    "sources": "Vec<[u8; 16]>",
-    "sender_posts": "Vec<SenderPost>",
-    "receiver_posts": "Vec<ReceiverPost>",
-    "sinks": "Vec<[u8; 16]>",
-    "proof": "[u8; 128]"
-  }
-};
+const { chains } = require('./const');
 const cache = {
   lifetime: 3600 * 24,
 };
@@ -77,35 +18,7 @@ const cacheAppend = (key, value) => {
   };
 }
 
-const getExtrinsicError = function (events, api) {
-  let errorMessage = null;
-  events
-    .filter(
-      ({ event }) =>
-        api.events.system.ExtrinsicFailed.is(event) ||
-        api.events.utility.BatchInterrupted.is(event)
-    )
-    .forEach(
-      ({
-        event: {
-          data: [error, info],
-        },
-      }) => {
-        if (error.isModule) {
-          // for module errors, we have the section indexed, lookup
-          const decoded = api.registry.findMetaError(error.asModule);
-          const { documentation = [], method, section } = decoded;
-          errorMessage = `${section}.${method}: ${documentation.join(' ')}`;
-        } else {
-          // Other, CannotLookup, BadOrigin, no extra info
-          errorMessage = error.toString();
-        }
-      }
-    );
-  return errorMessage;
-}
-
-const notify = async (interaction, token, cacheKey) => {
+const notify = async (interaction, symbol, cacheKey) => {
   const { fxHash, fxTime, bxHash, bxTime, txHash, txTime } = cache[cacheKey].value;
   const options = {
     method: 'PATCH',
@@ -114,25 +27,26 @@ const notify = async (interaction, token, cacheKey) => {
     },
     body: JSON.stringify({
       content: (!!fxHash)
-        ? `<@${interaction.user.id}> your ${token.toLowerCase()} tokens were sent at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(fxTime).toLowerCase()} (utc) in tx: ${fxHash}`
+        ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} tokens were sent at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(fxTime).toLowerCase()} (utc) in tx: ${fxHash}`
         : (!!bxHash)
-          ? `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(bxTime).toLowerCase()} (utc) with in block: ${bxHash}`
+          ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(bxTime).toLowerCase()} (utc) with in block: ${bxHash}`
           : (!!txHash)
-            ? `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(txTime).toLowerCase()} (utc) with tx hash: ${txHash}`
-            : `<@${interaction.user.id}> your ${token.toLowerCase()} token transfer is in progress`,
-      ...(token === 'DOL' && (!!fxHash || !!bxHash)) && {
+            ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(txTime).toLowerCase()} (utc) with tx hash: ${txHash}`
+            : `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer is in progress`,
+      ...(symbol === 'DOL' && (!!fxHash || !!bxHash)) && {
         embeds: (!!fxHash)
           ? [
               {
                 title: 'view on polkadot.js',
-                url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${fxHash}`,
+                url: `https://polkadot.js.org/apps/?rpc=${chains[symbol].socket}#/explorer/query/${fxHash}`,
                 type: 'rich',
                 thumbnail: {
-                  url: chains[token].logo,
+                  url: chains[symbol].logo,
                   height: 50,
                   width: 50,
                 },
               },
+              /*
               {
                 title: 'view on subscan',
                 url: `https://dolphin.subscan.io/extrinsic/${fxHash}`,
@@ -143,28 +57,29 @@ const notify = async (interaction, token, cacheKey) => {
                   width: 50,
                 },
               }
+              */
             ]
           : [
               {
                 title: 'view on polkadot.js',
-                url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${bxHash}`,
+                url: `https://polkadot.js.org/apps/?rpc=${chains[symbol].socket}#/explorer/query/${bxHash}`,
                 type: 'rich',
                 thumbnail: {
-                  url: chains[token].logo,
+                  url: chains[symbol].logo,
                   height: 50,
                   width: 50,
                 },
               }
             ]
       },
-      ...(token != 'DOL' && (!!fxHash || !!bxHash)) && {
+      ...(symbol != 'DOL' && (!!fxHash || !!bxHash)) && {
         embeds: [
           {
             title: 'view on polkadot.js',
-            url: `https://polkadot.js.org/apps/?rpc=${chains[token].socket}#/explorer/query/${(fxHash || bxHash)}`,
+            url: `https://polkadot.js.org/apps/?rpc=${chains[symbol].socket}#/explorer/query/${(fxHash || bxHash)}`,
             type: 'rich',
             thumbnail: {
-              url: chains[token].logo,
+              url: chains[symbol].logo,
               height: 50,
               width: 50,
             },
@@ -184,33 +99,32 @@ const notify = async (interaction, token, cacheKey) => {
   }
 };
 
-const txResponseHandler = (result, api, token, interaction, address) => {
-  const cacheKey = `${token}_${address}`;
+const transactionResponseHandler = (event, api, symbol, interaction, address) => {
+  const cacheKey = `${symbol}_${address}`;
   const isInProgress = (!!cache[cacheKey] && !!cache[cacheKey].value && !!cache[cacheKey].value.txHash);
   const cached = {
     ...(!!cache[cacheKey]) && {
       ...cache[cacheKey].value,
     },
-    //...result,
-    ...(!!result.txHash && !isInProgress) && {
-      txHash: result.txHash,
-      txTime: new Date(),
+    ...(!!event.transaction && !isInProgress) && {
+      txHash: event.transaction.hash,
+      txTime: event.transaction.timestamp,
     },
-    ...(!!result.status && !!result.status.finalized) && {
-      fxHash: result.status.finalized,
-      fxTime: new Date(),
+    ...(!!event.finalized) && {
+      fxHash: event.finalized.hash,
+      fxTime: event.finalized.timestamp,
     },
-    ...(!!result.status && !!result.status.inBlock) && {
-      bxHash: result.status.inBlock,
-      bxTime: new Date(),
+    ...(!!event.block) && {
+      bxHash: event.block.hash,
+      bxTime: event.block.timestamp,
     },
   };
   cacheAppend(cacheKey, cached);
   console.log(`transaction status: ${JSON.stringify(cached)}`);
 }
 
-const sendToken = async (token, address, interaction) => {
-  const { amount, id, options, schema, socket, types, typesBundle } = chains[token];
+const sendToken = async (symbol, address, interaction, collection) => {
+  const { amount, id, options, schema, socket, types, typesBundle } = chains[symbol];
   const provider = new WsProvider(socket);
   const api = await ApiPromise.create((!!options) ? options({ provider, types }) : ({ provider, types, typesBundle }));
   await Promise.all([ api.isReady, cryptoWaitReady() ]);
@@ -221,19 +135,65 @@ const sendToken = async (token, address, interaction) => {
       ? await api.tx.mantaPay
         .publicTransfer({ id, value: amount.toString() }, address)
         .signAndSend(faucet, { nonce }, async (response) => {
-          txResponseHandler(response, api, token, interaction, address);
-          if (!!response.status && (!!response.status.finalized || !!response.status.inBlock)) {
-            await notify(interaction, token, `${token}_${address}`);
-            await unsub();
+          const { transaction } = { transaction: response.txHash };
+          const { inBlock: block, finalized } = { ...JSON.parse(JSON.stringify(response.status)) };
+          const event = {
+            ...(!!transaction) && {
+              transaction: {
+                hash: transaction.toString(),
+                timestamp: new Date(),
+              }
+            },
+            ...(!!block) && {
+              block: {
+                hash: block.toString(),
+                timestamp: new Date(),
+              }
+            },
+            ...(!!finalized) && {
+              finalized: {
+                hash: finalized.toString(),
+                timestamp: new Date(),
+              }
+            },
+          };
+          await putRequest(collection, address, symbol, event);
+          transactionResponseHandler(event, api, symbol, interaction, address);
+          if (!!event.transaction || !!event.block || !!event.finalized) {
+            await notify(interaction, symbol, `${symbol}_${address}`);
+            //await unsub();
           }
         })
       : await api.tx.balances
         .transfer(address, amount)
         .signAndSend(faucet, { nonce }, async (response) => {
-          await txResponseHandler(response, api, token, interaction, address);
-          if (!!response.status && (!!response.status.finalized || !!response.status.inBlock)) {
-            await notify(interaction, token, `${token}_${address}`);
-            await unsub();
+          const { transaction } = { transaction: response.txHash };
+          const { inBlock: block, finalized } = { ...JSON.parse(JSON.stringify(response.status)) };
+          const event = {
+            ...(!!transaction) && {
+              transaction: {
+                hash: transaction.toString(),
+                timestamp: new Date(),
+              }
+            },
+            ...(!!block) && {
+              block: {
+                hash: block.toString(),
+                timestamp: new Date(),
+              }
+            },
+            ...(!!finalized) && {
+              finalized: {
+                hash: finalized.toString(),
+                timestamp: new Date(),
+              }
+            },
+          };
+          await putRequest(collection, address, symbol, event);
+          transactionResponseHandler(event, api, symbol, interaction, address);
+          if (!!event.transaction || !!event.block || !!event.finalized) {
+            await notify(interaction, symbol, `${symbol}_${address}`);
+            //await unsub();
           }
         });
   } catch (error) {
@@ -241,37 +201,38 @@ const sendToken = async (token, address, interaction) => {
   }
 };
 
-const chains = {
-  DOL: { /*id: 1,*/ symbol: "DOL", amount: (BigInt(100) * BigInt(10 ** 12)), socket: 'wss://ws.calamari.seabird.systems', types, schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/dol.png' },
-  KSM: { symbol: "KSM", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.internal.kusama.systems', schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/ksm.png' },
-  KAR: { symbol: "KAR", amount: (BigInt(10) * BigInt(10 ** 12)), socket: 'wss://ws.acala.seabird.systems', options, schema: 'sr25519', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/kar.png' },
-  MOVR: { symbol: "MOVR", amount: (BigInt(10) * BigInt(10 ** 18)), socket: 'wss://ws.moonriver.seabird.systems', typesBundle: typesBundlePre900, schema: 'ethereum', logo: 'https://gist.githubusercontent.com/grenade/dc0ff3a062e711db4ad8d4a70ad8bdb2/raw/movr.png' },
-};
-
 module.exports.open = async (event) => {
-  const results = await Promise.all(event.Records.map(async ({ messageAttributes, receiptHandle }) => {
-    const interaction = {
-      id: messageAttributes.interactionId.stringValue,
-      token: messageAttributes.interactionToken.stringValue,
-      user: {
-        id: messageAttributes.userId.stringValue,
-      },
-    };
-    const [
-      address,
-      symbol,
-    ] = [
-      messageAttributes.address.stringValue,
-      messageAttributes.token.stringValue,
-    ];
-    const cacheKey = `${symbol}_${address}`;
-    sqsClient.send(new DeleteMessageCommand({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: receiptHandle }));
-    if (!cache[cacheKey] || cache[cacheKey].expires < Date.now()) {
-      await sendToken(symbol, address, interaction);
-    } else {
-      await notify(interaction, symbol, cacheKey);
-    }
-    return interaction;
-  }));
-  
+  const mongoClient = await MongoClient.connect(process.env.FAUCET_DATABASE_URI);
+  const database = await mongoClient.db('testnet_v3_faucet');
+  const collection = await database.collection('request');
+  try {
+    await Promise.all(event.Records.map(async ({ messageAttributes, receiptHandle }) => {
+      const interaction = {
+        id: messageAttributes.interactionId.stringValue,
+        token: messageAttributes.interactionToken.stringValue,
+        user: {
+          id: messageAttributes.userId.stringValue,
+          username: messageAttributes.username.stringValue,
+        },
+      };
+      const [
+        address,
+        symbol,
+      ] = [
+        messageAttributes.address.stringValue,
+        messageAttributes.token.stringValue,
+      ];
+      //await putRequest(collection, address, symbol);
+      const cacheKey = `${symbol}_${address}`;
+      sqsClient.send(new DeleteMessageCommand({ QueueUrl: process.env.AWS_SQS_URL, ReceiptHandle: receiptHandle }));
+      if (!cache[cacheKey] || cache[cacheKey].expires < Date.now()) {
+        await sendToken(symbol, address, interaction, collection);
+      } else {
+        await notify(interaction, symbol, cacheKey);
+      }
+      return interaction;
+    }));
+  } finally {
+    //await mongoClient.close();
+  }
 };
