@@ -28,12 +28,12 @@ const notify = async (interaction, symbol, cacheKey) => {
     },
     body: JSON.stringify({
       content: (!!fxHash)
-        ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} tokens were sent at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(fxTime).toLowerCase()} (utc) in tx: ${fxHash}`
+        ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was finalized at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(fxTime).toLowerCase()} (utc) in block: ${fxHash}`
         : (!!bxHash)
-          ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(bxTime).toLowerCase()} (utc) with in block: ${bxHash}`
+          ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was processed at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(bxTime).toLowerCase()} (utc) in block: ${bxHash}`
           : (!!txHash)
-            ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(txTime).toLowerCase()} (utc) with tx hash: ${txHash}`
-            : `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer is in progress`,
+            ? `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer was triggered at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(txTime).toLowerCase()} (utc) in transaction: ${txHash}`
+            : `<@${interaction.user.id}> your ${symbol.toLowerCase()} token transfer is in progress...`,
       ...(symbol === 'DOL' && (!!fxHash || !!bxHash)) && {
         embeds: (!!fxHash)
           ? [

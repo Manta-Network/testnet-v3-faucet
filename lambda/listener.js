@@ -77,6 +77,14 @@ module.exports.interactions = async (event) => {
           } else if (channel_id !== process.env.DISCORD_CHANNEL_ID) {
             response = discordResponseBuilder(`<@${member.user.id}> please send your faucet requests to <#${process.env.DISCORD_CHANNEL_ID}> channel`, (1<<6));
           } else {
+            const interaction = {
+              id: interactionId,
+              token: interactionToken,
+              user: {
+                id: member.user.id,
+                username: member.user.username,
+              },
+            };
             const userId = member.user.id;
             const address = data.options[0].value;
             try {
@@ -89,10 +97,13 @@ module.exports.interactions = async (event) => {
             const mongoClient = await MongoClient.connect(process.env.FAUCET_DATABASE_URI);
             const database = await mongoClient.db('testnet_v3_faucet');
             const collection = await database.collection('request');
-            await putRequest(collection, address, symbol);
+            await putRequest(collection, address, symbol, { interaction });
             const request = await getRequest(collection, address, symbol);
 
-            if (!!request.block) {
+            if (!!request.finalized) {
+              const message = `your ${symbol.toLowerCase()} token transfer was finalized at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(request.finalized.timestamp).toLowerCase()} (utc) in block: ${request.finalized.hash}.`;
+              response = discordResponseBuilder(`<@${userId}> ${message}`, (1<<6), [{ socket: chains[symbol].socket, logo: chains[symbol].logo, hash: request.finalized.hash }]);
+            } else if (!!request.block) {
               const message = `your ${symbol.toLowerCase()} token transfer was processed at ${new Intl.DateTimeFormat('default', { hour: 'numeric', minute: 'numeric', second: 'numeric' }).format(request.block.timestamp).toLowerCase()} (utc) in block: ${request.block.hash}.`;
               response = discordResponseBuilder(`<@${userId}> ${message}`, (1<<6), [{ socket: chains[symbol].socket, logo: chains[symbol].logo, hash: request.block.hash }]);
             } else if (!!request.transaction) {
