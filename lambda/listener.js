@@ -80,6 +80,7 @@ module.exports.interactions = async (event) => {
             const interaction = {
               id: interactionId,
               token: interactionToken,
+              timestamp: new Date(),
               user: {
                 id: member.user.id,
                 username: member.user.username,

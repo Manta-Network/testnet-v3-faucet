@@ -68,3 +68,36 @@ functions:
           path: discord/interactions
           method: post
           cors: true
+  observer:
+    environment:
+      FAUCET_DATABASE_URI: ${ssm:/${opt:stage}_testnet_v3_faucet_database_uri}
+    handler: observer.overview
+    events:
+      -
+        http:
+          path: observer/overview
+          method: get
+          cors: true
+  address:
+    environment:
+      FAUCET_DATABASE_URI: ${ssm:/${opt:stage}_testnet_v3_faucet_database_uri}
+    handler: observer.address
+    events:
+      -
+        http:
+          path: observer/address/{address}
+          method: get
+          cors: true
+          request:
+            parameters:
+               paths:
+                 address: true
+  health:
+    timeout: 29
+    handler: observer.health
+    events:
+      -
+        http:
+          path: observer/health
+          method: get
+          cors: true

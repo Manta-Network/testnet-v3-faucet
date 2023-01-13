@@ -7,6 +7,33 @@ const filter = (address, symbol) => ({
   day: day(),
 });
 
+module.exports.getOverview = async (collection) => (
+  await collection.aggregate([
+    {
+      $group: {
+        _id: {
+          day: "$day",
+          symbol: "$symbol",
+        },
+        count: { $sum: 1 }
+      }
+    }
+  ]).toArray()
+);
+
+module.exports.getRequests = async (collection, address) => (
+  await collection.find(
+    {
+      address,
+    },
+    {
+      projection: {
+        _id: false,
+      },
+    }
+  ).toArray()
+);
+
 module.exports.getRequest = async (collection, address, symbol) => (
   await collection.findOne(
     filter(address, symbol),
